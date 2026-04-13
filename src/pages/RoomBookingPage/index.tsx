@@ -1,9 +1,9 @@
 import { css } from '@emotion/react';
-import { ErrorBoundary } from '@suspensive/react';
-import { Mutation, SuspenseQueries } from '@suspensive/react-query';
+import { ErrorBoundary, Suspense } from '@suspensive/react';
+import { Mutation, SuspenseQuery } from '@suspensive/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Border, Button, ListRow, Select, Spacing, Text, Top } from '_tosslib/components';
@@ -101,6 +101,7 @@ export function RoomBookingPage() {
           </Section>
         )}
       >
+        {/* 예약 조건 입력 */}
         <Suspense
           fallback={
             <Section>
@@ -108,266 +109,281 @@ export function RoomBookingPage() {
             </Section>
           }
         >
-          <SuspenseQueries queries={[roomsQueryOptions(), reservationsQueryOptions(date)]}>
-            {([{ data: rooms }, { data: reservations }]) => {
-              const availableRooms = isFilterComplete
-                ? rooms
-                    .filter(room => {
-                      if (room.capacity < attendees) return false;
-                      if (!equipment.every(eq => room.equipment.includes(eq))) return false;
-                      if (preferredFloor !== null && room.floor !== preferredFloor) return false;
-                      const hasConflict = reservations.some(
-                        r => r.roomId === room.id && r.date === date && r.start < endTime && r.end > startTime
-                      );
-                      if (hasConflict) return false;
-                      return true;
-                    })
-                    .sort((a, b) => {
-                      if (a.floor !== b.floor) return a.floor - b.floor;
-                      return a.name.localeCompare(b.name);
-                    })
-                : [];
-              return (
-                <>
-                  {/* 예약 조건 입력 */}
-                  <Section>
-                    <Text typography="t5" fontWeight="bold" color={colors.grey900}>
-                      예약 조건
-                    </Text>
-                    <Spacing size={16} />
+          <SuspenseQuery {...roomsQueryOptions()}>
+            {({ data: rooms }) => (
+              <Section>
+                <Text typography="t5" fontWeight="bold" color={colors.grey900}>
+                  예약 조건
+                </Text>
+                <Spacing size={16} />
 
-                    {/* 날짜 */}
-                    <DatePicker
-                      date={date}
-                      onChange={date => {
-                        setDate(date);
+                {/* 날짜 */}
+                <DatePicker
+                  date={date}
+                  onChange={date => {
+                    setDate(date);
+                    handleFilterChange();
+                  }}
+                  label="날짜"
+                />
+                <Spacing size={14} />
+
+                {/* 시간 */}
+                <Section.Row>
+                  <FilterField label="시작 시간">
+                    <Select
+                      value={startTime}
+                      onChange={e => {
+                        setStartTime(e.target.value);
                         handleFilterChange();
                       }}
-                      label="날짜"
-                    />
-                    <Spacing size={14} />
-
-                    {/* 시간 */}
-                    <Section.Row>
-                      <FilterField label="시작 시간">
-                        <Select
-                          value={startTime}
-                          onChange={e => {
-                            setStartTime(e.target.value);
-                            handleFilterChange();
-                          }}
-                          aria-label="시작 시간"
-                        >
-                          <option value="">선택</option>
-                          {TIME_SLOTS.slice(0, -1).map(t => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </Select>
-                      </FilterField>
-                      <FilterField label="종료 시간">
-                        <Select
-                          value={endTime}
-                          onChange={e => {
-                            setEndTime(e.target.value);
-                            handleFilterChange();
-                          }}
-                          aria-label="종료 시간"
-                        >
-                          <option value="">선택</option>
-                          {TIME_SLOTS.slice(1).map(t => (
-                            <option key={t} value={t}>
-                              {t}
-                            </option>
-                          ))}
-                        </Select>
-                      </FilterField>
-                    </Section.Row>
-                    <Spacing size={14} />
-
-                    {/* 참석 인원 + 선호 층 */}
-                    <Section.Row>
-                      <FilterField label="참석 인원">
-                        <input
-                          type="number"
-                          min={1}
-                          value={attendees}
-                          onChange={e => {
-                            setAttendees(Math.max(1, Number(e.target.value)));
-                            handleFilterChange();
-                          }}
-                          aria-label="참석 인원"
-                          css={numberInputStyle}
-                        />
-                      </FilterField>
-                      <FilterField label="선호 층">
-                        <Select
-                          value={preferredFloor ?? ''}
-                          onChange={e => {
-                            const val = e.target.value;
-                            setPreferredFloor(val === '' ? null : Number(val));
-                            handleFilterChange();
-                          }}
-                          aria-label="선호 층"
-                        >
-                          <option value="">전체</option>
-                          {/* 필터링 */}
-                          {[...new Set(rooms.map(r => r.floor))]
-                            .sort((a: number, b: number) => a - b)
-                            .map((f: number) => (
-                              <option key={f} value={f}>
-                                {f}층
-                              </option>
-                            ))}
-                        </Select>
-                      </FilterField>
-                    </Section.Row>
-                    <Spacing size={14} />
-
-                    {/* 장비 */}
-                    <ChipGroup label="필요 장비">
-                      {ALL_EQUIPMENT.map(eq => (
-                        <ChipGroup.Item
-                          key={eq}
-                          isSelected={equipment.includes(eq)}
-                          ariaLabel={EQUIPMENT_LABELS[eq]}
-                          onClick={() => {
-                            const next = equipment.includes(eq) ? equipment.filter(e => e !== eq) : [...equipment, eq];
-                            setEquipment(next);
-                            handleFilterChange();
-                          }}
-                        >
-                          {EQUIPMENT_LABELS[eq]}
-                        </ChipGroup.Item>
+                      aria-label="시작 시간"
+                    >
+                      <option value="">선택</option>
+                      {TIME_SLOTS.slice(0, -1).map(t => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
                       ))}
-                    </ChipGroup>
-                  </Section>
+                    </Select>
+                  </FilterField>
+                  <FilterField label="종료 시간">
+                    <Select
+                      value={endTime}
+                      onChange={e => {
+                        setEndTime(e.target.value);
+                        handleFilterChange();
+                      }}
+                      aria-label="종료 시간"
+                    >
+                      <option value="">선택</option>
+                      {TIME_SLOTS.slice(1).map(t => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </Select>
+                  </FilterField>
+                </Section.Row>
+                <Spacing size={14} />
 
-                  {validationError && (
-                    <Section>
-                      <Spacing size={8} />
-                      <span css={alertTextStyle} role="alert">
-                        {validationError}
-                      </span>
-                    </Section>
-                  )}
+                {/* 참석 인원 + 선호 층 */}
+                <Section.Row>
+                  <FilterField label="참석 인원">
+                    <input
+                      type="number"
+                      min={1}
+                      value={attendees}
+                      onChange={e => {
+                        setAttendees(Math.max(1, Number(e.target.value)));
+                        handleFilterChange();
+                      }}
+                      aria-label="참석 인원"
+                      css={numberInputStyle}
+                    />
+                  </FilterField>
+                  <FilterField label="선호 층">
+                    <Select
+                      value={preferredFloor ?? ''}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setPreferredFloor(val === '' ? null : Number(val));
+                        handleFilterChange();
+                      }}
+                      aria-label="선호 층"
+                    >
+                      <option value="">전체</option>
+                      {/* 필터링 */}
+                      {[...new Set(rooms.map(r => r.floor))]
+                        .sort((a: number, b: number) => a - b)
+                        .map((f: number) => (
+                          <option key={f} value={f}>
+                            {f}층
+                          </option>
+                        ))}
+                    </Select>
+                  </FilterField>
+                </Section.Row>
+                <Spacing size={14} />
 
-                  <Spacing size={24} />
-                  <Border size={8} />
-                  <Spacing size={24} />
-
-                  {/* 예약 가능 회의실 목록 */}
-                  {isFilterComplete && (
-                    <Section>
-                      <Section.Header>
-                        <Text typography="t5" fontWeight="bold" color={colors.grey900}>
-                          예약 가능 회의실
-                        </Text>
-                        <Text typography="t7" fontWeight="medium" color={colors.grey500}>
-                          {availableRooms.length}개
-                        </Text>
-                      </Section.Header>
-                      <Spacing size={16} />
-
-                      <ListView
-                        data={availableRooms}
-                        ListEmptyComponent={
-                          <ListView.Empty>
-                            <Text typography="t6" color={colors.grey500}>
-                              조건에 맞는 회의실이 없습니다.
-                            </Text>
-                          </ListView.Empty>
-                        }
-                        renderItem={room => {
-                          const isSelected = selectedRoomId === room.id;
-                          return (
-                            <SelectableCard
-                              key={room.id}
-                              isSelected={isSelected}
-                              onClick={() => setSelectedRoomId(room.id)}
-                              ariaLabel={room.name}
-                            >
-                              <ListRow
-                                contents={
-                                  <ListRow.Text2Rows
-                                    top={room.name}
-                                    topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                                    bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment
-                                      .map((e: string) => EQUIPMENT_LABELS[e])
-                                      .join(', ')}`}
-                                    bottomProps={{ typography: 't7', color: colors.grey600 }}
-                                  />
-                                }
-                                right={isSelected ? <SelectableCard.Badge>선택됨</SelectableCard.Badge> : undefined}
-                              />
-                            </SelectableCard>
-                          );
-                        }}
-                      />
-
-                      <Spacing size={16} />
-
-                      <Mutation
-                        mutationFn={createReservation}
-                        onSuccess={(result, variables) => {
-                          queryClient.invalidateQueries({ queryKey: reservationKeys.detail(variables.date) });
-                          queryClient.invalidateQueries({ queryKey: myReservationKeys.all });
-
-                          if ('ok' in result && result.ok) {
-                            navigate('/', { state: { message: '예약이 완료되었습니다!' } });
-                            return;
-                          }
-
-                          const errResult = result as { message?: string };
-                          setErrorMessage(errResult.message ?? '예약에 실패했습니다.');
-                          setSelectedRoomId(null);
-                        }}
-                        onError={err => {
-                          let serverMessage = '예약에 실패했습니다.';
-                          if (axios.isAxiosError(err)) {
-                            const data = err.response?.data as { message?: string } | undefined;
-                            serverMessage = data?.message ?? serverMessage;
-                          }
-                          setErrorMessage(serverMessage);
-                          setSelectedRoomId(null);
-                        }}
-                      >
-                        {createMutation => (
-                          <Button
-                            display="full"
-                            onClick={async () => {
-                              if (!selectedRoomId) {
-                                setErrorMessage('회의실을 선택해주세요.');
-                                return;
-                              }
-                              if (!startTime || !endTime) {
-                                setErrorMessage('시작 시간과 종료 시간을 선택해주세요.');
-                                return;
-                              }
-
-                              await createMutation.mutateAsync({
-                                roomId: selectedRoomId,
-                                date,
-                                start: startTime,
-                                end: endTime,
-                                attendees,
-                                equipment,
-                              });
-                            }}
-                            disabled={createMutation.isLoading}
-                          >
-                            {createMutation.isLoading ? '예약 중...' : '확정'}
-                          </Button>
-                        )}
-                      </Mutation>
-                    </Section>
-                  )}
-                </>
-              );
-            }}
-          </SuspenseQueries>
+                {/* 장비 */}
+                <ChipGroup label="필요 장비">
+                  {ALL_EQUIPMENT.map(eq => (
+                    <ChipGroup.Item
+                      key={eq}
+                      isSelected={equipment.includes(eq)}
+                      ariaLabel={EQUIPMENT_LABELS[eq]}
+                      onClick={() => {
+                        const next = equipment.includes(eq) ? equipment.filter(e => e !== eq) : [...equipment, eq];
+                        setEquipment(next);
+                        handleFilterChange();
+                      }}
+                    >
+                      {EQUIPMENT_LABELS[eq]}
+                    </ChipGroup.Item>
+                  ))}
+                </ChipGroup>
+              </Section>
+            )}
+          </SuspenseQuery>
         </Suspense>
+
+        {validationError && (
+          <Section>
+            <Spacing size={8} />
+            <span css={alertTextStyle} role="alert">
+              {validationError}
+            </span>
+          </Section>
+        )}
+
+        <Spacing size={24} />
+        <Border size={8} />
+        <Spacing size={24} />
+
+        {/* 예약 가능 회의실 목록 */}
+        {isFilterComplete && (
+          <Section>
+            <Suspense
+              fallback={
+                <Section>
+                  <Text>로딩중...</Text>
+                </Section>
+              }
+            >
+              <SuspenseQuery {...reservationsQueryOptions(date)}>
+                {({ data: reservations }) => (
+                  <SuspenseQuery
+                    {...roomsQueryOptions()}
+                    select={rooms =>
+                      rooms
+                        .filter(room => {
+                          if (room.capacity < attendees) return false;
+                          if (!equipment.every(eq => room.equipment.includes(eq))) return false;
+                          if (preferredFloor !== null && room.floor !== preferredFloor) return false;
+                          const hasConflict = reservations.some(
+                            r => r.roomId === room.id && r.date === date && r.start < endTime && r.end > startTime
+                          );
+                          if (hasConflict) return false;
+                          return true;
+                        })
+                        .sort((a, b) => {
+                          if (a.floor !== b.floor) return a.floor - b.floor;
+                          return a.name.localeCompare(b.name);
+                        })
+                    }
+                  >
+                    {({ data: availableRooms }) => (
+                      <>
+                        <Section.Header>
+                          <Text typography="t5" fontWeight="bold" color={colors.grey900}>
+                            예약 가능 회의실
+                          </Text>
+                          <Text typography="t7" fontWeight="medium" color={colors.grey500}>
+                            {availableRooms.length}개
+                          </Text>
+                        </Section.Header>
+                        <Spacing size={16} />
+
+                        <ListView
+                          data={availableRooms}
+                          ListEmptyComponent={
+                            <ListView.Empty>
+                              <Text typography="t6" color={colors.grey500}>
+                                조건에 맞는 회의실이 없습니다.
+                              </Text>
+                            </ListView.Empty>
+                          }
+                          renderItem={room => {
+                            const isSelected = selectedRoomId === room.id;
+                            return (
+                              <SelectableCard
+                                key={room.id}
+                                isSelected={isSelected}
+                                onClick={() => setSelectedRoomId(room.id)}
+                                ariaLabel={room.name}
+                              >
+                                <ListRow
+                                  contents={
+                                    <ListRow.Text2Rows
+                                      top={room.name}
+                                      topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
+                                      bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment
+                                        .map((e: string) => EQUIPMENT_LABELS[e])
+                                        .join(', ')}`}
+                                      bottomProps={{ typography: 't7', color: colors.grey600 }}
+                                    />
+                                  }
+                                  right={isSelected ? <SelectableCard.Badge>선택됨</SelectableCard.Badge> : undefined}
+                                />
+                              </SelectableCard>
+                            );
+                          }}
+                        />
+                      </>
+                    )}
+                  </SuspenseQuery>
+                )}
+              </SuspenseQuery>
+            </Suspense>
+
+            <Spacing size={16} />
+
+            <Mutation
+              mutationFn={createReservation}
+              onSuccess={(result, variables) => {
+                queryClient.invalidateQueries({ queryKey: reservationKeys.detail(variables.date) });
+                queryClient.invalidateQueries({ queryKey: myReservationKeys.all });
+
+                if ('ok' in result && result.ok) {
+                  navigate('/', { state: { message: '예약이 완료되었습니다!' } });
+                  return;
+                }
+
+                const errResult = result as { message?: string };
+                setErrorMessage(errResult.message ?? '예약에 실패했습니다.');
+                setSelectedRoomId(null);
+              }}
+              onError={err => {
+                let serverMessage = '예약에 실패했습니다.';
+                if (axios.isAxiosError(err)) {
+                  const data = err.response?.data as { message?: string } | undefined;
+                  serverMessage = data?.message ?? serverMessage;
+                }
+                setErrorMessage(serverMessage);
+                setSelectedRoomId(null);
+              }}
+            >
+              {createMutation => (
+                <Button
+                  display="full"
+                  onClick={async () => {
+                    if (!selectedRoomId) {
+                      setErrorMessage('회의실을 선택해주세요.');
+                      return;
+                    }
+                    if (!startTime || !endTime) {
+                      setErrorMessage('시작 시간과 종료 시간을 선택해주세요.');
+                      return;
+                    }
+
+                    await createMutation.mutateAsync({
+                      roomId: selectedRoomId,
+                      date,
+                      start: startTime,
+                      end: endTime,
+                      attendees,
+                      equipment,
+                    });
+                  }}
+                  disabled={createMutation.isLoading}
+                >
+                  {createMutation.isLoading ? '예약 중...' : '확정'}
+                </Button>
+              )}
+            </Mutation>
+          </Section>
+        )}
       </ErrorBoundary>
 
       <Spacing size={24} />
