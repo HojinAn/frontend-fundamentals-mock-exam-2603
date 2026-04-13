@@ -1,6 +1,7 @@
 import { css } from '@emotion/react';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { SuspenseQueries } from '@suspensive/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -15,28 +16,18 @@ import { Timeline } from 'components/common/Timeline';
 import { Timetable } from 'components/common/Timetable';
 import { Tooltip } from 'components/common/Tooltip';
 import { ReservationCancelButton } from 'components/reservations/ReservationCancelButton';
-import { TOTAL_MINUTES } from 'constants/time.constant';
-import { myReservationsQueryOptions, reservationsQueryOptions, roomsQueryOptions } from 'models/queryOptions';
-
-const EQUIPMENT_LABELS: Record<string, string> = {
-  tv: 'TV',
-  whiteboard: '화이트보드',
-  video: '화상장비',
-  speaker: '스피커',
-};
-
-const TIME_SLOTS: string[] = [];
-for (let h = 9; h <= 20; h++) {
-  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
-  if (h < 20) {
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
-  }
-}
-
-const HOUR_LABELS = TIME_SLOTS.filter(t => t.endsWith(':00'));
+import { EQUIPMENT_LABELS, HOUR_LABELS } from 'constants/reservation.constant';
+import {
+  myReservationKeys,
+  myReservationsQueryOptions,
+  reservationKeys,
+  reservationsQueryOptions,
+  roomsQueryOptions,
+} from 'models/queryOptions';
 
 export function ReservationStatusPage() {
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [date, setDate] = useState(formatDate(new Date()));
 
   const locationState = location.state as { message?: string } | null;
@@ -107,7 +98,7 @@ export function ReservationStatusPage() {
 
                   <Timetable>
                     {/* 시간 헤더 */}
-                    <Timetable.Header labels={HOUR_LABELS} totalMinutes={TOTAL_MINUTES} />
+                    <Timetable.Header labels={HOUR_LABELS} />
                     {/* 회의실별 타임라인 */}
                     {rooms.map((room, index) => {
                       const roomReservations = reservations.filter(r => r.roomId === room.id);
@@ -117,12 +108,7 @@ export function ReservationStatusPage() {
                             {roomReservations.map(res => {
                               const isActive = activeReservation === res.id;
                               return (
-                                <Timeline.Range
-                                  key={res.id}
-                                  start={res.start}
-                                  end={res.end}
-                                  totalMinutes={TOTAL_MINUTES}
-                                >
+                                <Timeline.Range key={res.id} start={res.start} end={res.end}>
                                   <Timeline.Track
                                     aria-label={`${room.name} ${res.start}-${res.end} 예약 상세`}
                                     onClick={() => setActiveReservation(isActive ? null : res.id)}
@@ -200,7 +186,11 @@ export function ReservationStatusPage() {
                           right={
                             <ReservationCancelButton
                               reservationId={res.id}
-                              onSuccess={() => setMessage({ type: 'success', text: '예약이 취소되었습니다.' })}
+                              onSuccess={() => {
+                                queryClient.invalidateQueries({ queryKey: reservationKeys.all });
+                                queryClient.invalidateQueries({ queryKey: myReservationKeys.all });
+                                setMessage({ type: 'success', text: '예약이 취소되었습니다.' });
+                              }}
                               onError={() => setMessage({ type: 'error', text: '취소에 실패했습니다.' })}
                             />
                           }
@@ -214,19 +204,20 @@ export function ReservationStatusPage() {
           </SuspenseQueries>
 
           <Spacing size={24} />
-          <Border size={8} />
-          <Spacing size={24} />
-
-          {/* 예약하기 버튼 */}
-          <Section>
-            <Link to="/booking">
-              <Button display="full">예약하기</Button>
-            </Link>
-          </Section>
-
-          <Spacing size={24} />
         </Suspense>
       </ErrorBoundary>
+
+      <Border size={8} />
+      <Spacing size={24} />
+
+      {/* 예약하기 버튼 */}
+      <Section>
+        <Link to="/booking">
+          <Button display="full">예약하기</Button>
+        </Link>
+      </Section>
+
+      <Spacing size={24} />
     </PageContainer>
   );
 }
