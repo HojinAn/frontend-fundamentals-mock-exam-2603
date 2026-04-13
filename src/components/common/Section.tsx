@@ -26,3 +26,16 @@ Section.Header = function ({ children }: PropsWithChildren<{}>) {
     </div>
   );
 };
+
+Section.Row = function ({ children }: PropsWithChildren<{}>) {
+  return (
+    <div
+      css={css`
+        display: flex;
+        gap: 12px;
+      `}
+    >
+      {children}
+    </div>
+  );
+};
