@@ -1,7 +1,9 @@
 import { css } from '@emotion/react';
+import { PropsWithChildren } from 'react';
+
 import { Text } from '_tosslib/components';
 import { colors } from '_tosslib/constants/colors';
-import { PropsWithChildren } from 'react';
+import { TOTAL_MINUTES } from 'constants/time.constant';
 import { timeToMinutes } from 'utils/time.utils';
 
 function TimetableRoot({ children }: PropsWithChildren<{}>) {
@@ -20,10 +22,9 @@ function TimetableRoot({ children }: PropsWithChildren<{}>) {
 
 interface TimetableHeaderProps {
   labels: string[];
-  totalMinutes: number;
 }
 
-function TimetableHeader({ labels, totalMinutes }: TimetableHeaderProps) {
+function TimetableHeader({ labels }: TimetableHeaderProps) {
   return (
     <div
       css={css`
@@ -47,7 +48,7 @@ function TimetableHeader({ labels, totalMinutes }: TimetableHeaderProps) {
         `}
       >
         {labels.map(t => {
-          const left = (timeToMinutes(t) / totalMinutes) * 100;
+          const left = (timeToMinutes(t) / TOTAL_MINUTES) * 100;
           return (
             <Text
               key={t}

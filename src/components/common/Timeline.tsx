@@ -2,6 +2,7 @@ import { css } from '@emotion/react';
 import { PropsWithChildren } from 'react';
 
 import { colors } from '_tosslib/constants/colors';
+import { TOTAL_MINUTES } from 'constants/time.constant';
 import { timeToMinutes } from 'utils/time.utils';
 
 export function Timeline({ children }: PropsWithChildren<{}>) {
@@ -24,12 +25,11 @@ export function Timeline({ children }: PropsWithChildren<{}>) {
 interface TimelineRangeProps {
   start: string;
   end: string;
-  totalMinutes: number;
 }
 
-Timeline.Range = ({ start, end, totalMinutes, children }: PropsWithChildren<TimelineRangeProps>) => {
-  const left = (timeToMinutes(start) / totalMinutes) * 100;
-  const width = ((timeToMinutes(end) - timeToMinutes(start)) / totalMinutes) * 100;
+Timeline.Range = ({ start, end, children }: PropsWithChildren<TimelineRangeProps>) => {
+  const left = (timeToMinutes(start) / TOTAL_MINUTES) * 100;
+  const width = ((timeToMinutes(end) - timeToMinutes(start)) / TOTAL_MINUTES) * 100;
   return (
     <div
       css={css`
