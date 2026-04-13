@@ -24,7 +24,7 @@ export function DatePicker({ date, onChange, label }: DatePickerProps) {
         gap: 6px;
       `}
     >
-      {label && (
+      {!!label && (
         <Text typography="t7" fontWeight="medium" color={colors.grey800}>
           {label}
         </Text>
