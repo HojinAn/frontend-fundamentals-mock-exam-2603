@@ -1,6 +1,6 @@
 import { css } from '@emotion/react';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
-import { SuspenseQueries } from '@suspensive/react-query';
+import { Mutation, SuspenseQueries } from '@suspensive/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -15,7 +15,6 @@ import { TextBanner } from 'components/common/TextBanner';
 import { Timeline } from 'components/common/Timeline';
 import { Timetable } from 'components/common/Timetable';
 import { Tooltip } from 'components/common/Tooltip';
-import { ReservationCancelButton } from 'components/reservations/ReservationCancelButton';
 import { EQUIPMENT_LABELS, HOUR_LABELS } from 'constants/reservation.constant';
 import {
   myReservationKeys,
@@ -24,22 +23,23 @@ import {
   reservationsQueryOptions,
   roomsQueryOptions,
 } from 'models/queryOptions';
+import { cancelReservation } from 'pages/remotes';
 
 export function ReservationStatusPage() {
-  const location = useLocation();
   const queryClient = useQueryClient();
   const [date, setDate] = useState(formatDate(new Date()));
 
+  const location = useLocation();
   const locationState = location.state as { message?: string } | null;
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
-    locationState?.message ? { type: 'success', text: locationState.message } : null
-  );
-
   useEffect(() => {
     if (locationState?.message) {
       window.history.replaceState({}, '');
     }
   }, [locationState]);
+
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+    locationState?.message ? { type: 'success', text: locationState.message } : null
+  );
 
   const [activeReservation, setActiveReservation] = useState<string | null>(null);
 
@@ -200,15 +200,31 @@ export function ReservationStatusPage() {
                           />
                         }
                         right={
-                          <ReservationCancelButton
-                            reservationId={res.id}
+                          <Mutation
+                            mutationFn={cancelReservation}
                             onSuccess={() => {
                               queryClient.invalidateQueries({ queryKey: reservationKeys.all });
                               queryClient.invalidateQueries({ queryKey: myReservationKeys.all });
                               setMessage({ type: 'success', text: '예약이 취소되었습니다.' });
                             }}
                             onError={() => setMessage({ type: 'error', text: '취소에 실패했습니다.' })}
-                          />
+                          >
+                            {cancelMutation => (
+                              <Button
+                                type="danger"
+                                style="weak"
+                                size="small"
+                                onClick={async e => {
+                                  e.stopPropagation();
+                                  if (window.confirm('정말 취소하시겠습니까?')) {
+                                    await cancelMutation.mutateAsync(res.id);
+                                  }
+                                }}
+                              >
+                                취소
+                              </Button>
+                            )}
+                          </Mutation>
                         }
                       />
                     </ListView.Item>
