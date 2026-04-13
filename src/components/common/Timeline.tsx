@@ -1,13 +1,8 @@
 import { css } from '@emotion/react';
-import { createContext, PropsWithChildren } from 'react';
+import { PropsWithChildren } from 'react';
 
 import { colors } from '_tosslib/constants/colors';
 import { timeToMinutes } from 'utils/time.utils';
-
-const TimelineRangeContext = createContext<{
-  left: number;
-  width: number;
-} | null>(null);
 
 export function Timeline({ children }: PropsWithChildren<{}>) {
   return (
@@ -36,18 +31,16 @@ Timeline.Range = ({ start, end, totalMinutes, children }: PropsWithChildren<Time
   const left = (timeToMinutes(start) / totalMinutes) * 100;
   const width = ((timeToMinutes(end) - timeToMinutes(start)) / totalMinutes) * 100;
   return (
-    <TimelineRangeContext.Provider value={{ left, width }}>
-      <div
-        css={css`
-          position: absolute;
-          left: ${left}%;
-          width: ${width}%;
-          height: 100%;
-        `}
-      >
-        {children}
-      </div>
-    </TimelineRangeContext.Provider>
+    <div
+      css={css`
+        position: absolute;
+        left: ${left}%;
+        width: ${width}%;
+        height: 100%;
+      `}
+    >
+      {children}
+    </div>
   );
 };
 
