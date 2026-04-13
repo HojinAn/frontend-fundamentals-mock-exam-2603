@@ -7,6 +7,11 @@ import { createReservation } from 'pages/remotes';
 import axios from 'axios';
 import { Mutation, QueryClientConsumer, SuspenseQueries } from '@suspensive/react-query';
 import { myReservationKeys, reservationKeys, reservationsQueryOptions, roomsQueryOptions } from 'models/queryOptions';
+import { DatePicker } from 'components/common/DatePicker';
+import { Section } from 'components/common/Section';
+import { TextBanner } from 'components/common/TextBanner';
+import { PageContainer } from 'components/common/PageContainer';
+import { ListView } from 'components/common/ListView';
 
 const EQUIPMENT_LABELS: Record<string, string> = {
   tv: 'TV',
@@ -80,7 +85,7 @@ export function RoomBookingPage() {
   const isFilterComplete = hasTimeInputs && !validationError;
 
   return (
-    <div css={css`background: ${colors.white}; padding-bottom: 40px;`}>
+    <PageContainer>
       <div css={css`padding: 12px 24px 0;`}>
         <button
           type="button"
@@ -99,23 +104,16 @@ export function RoomBookingPage() {
       </Top.Top03>
 
       {errorMessage && (
-        <div css={css`padding: 0 24px;`}>
+        <Section>
           <Spacing size={12} />
-          <div
-            css={css`
-              padding: 10px 14px; border-radius: 10px; background: ${colors.red50};
-              display: flex; align-items: center; gap: 8px;
-            `}
-          >
-            <Text typography="t7" fontWeight="medium" color={colors.red500}>{errorMessage}</Text>
-          </div>
-        </div>
+          <TextBanner type="error" text={errorMessage}/>
+        </Section>
       )}
 
       <Spacing size={24} />
       
       <SuspenseQueries queries={[roomsQueryOptions(), reservationsQueryOptions(date)]}>
-        {([{data: rooms}, {data: reservations}]) =>{
+        {([{ data: rooms }, { data: reservations }]) => {
           const availableRooms = isFilterComplete
             ? rooms
                 .filter((room: { id: string; capacity: number; equipment: string[]; floor: number }) => {
@@ -134,31 +132,24 @@ export function RoomBookingPage() {
                   return a.name.localeCompare(b.name);
                 })
             : [];
-          return <>
+          return (
+            <>
             {/* 예약 조건 입력 */}
-            <div css={css`padding: 0 24px;`}>
+            <Section>
               <Text typography="t5" fontWeight="bold" color={colors.grey900}>
                 예약 조건
               </Text>
               <Spacing size={16} />
 
               {/* 날짜 */}
-              <div css={css`display: flex; flex-direction: column; gap: 6px;`}>
-                <Text as="label" typography="t7" fontWeight="medium" color={colors.grey600}>날짜</Text>
-                <input
-                  type="date"
-                  value={date}
-                  min={formatDate(new Date())}
-                  onChange={e => { setDate(e.target.value); handleFilterChange(); }}
-                  aria-label="날짜"
-                  css={css`
-                    box-sizing: border-box; font-size: 16px; font-weight: 500; line-height: 1.5; height: 48px;
-                    background-color: ${colors.grey50}; border-radius: 12px; color: ${colors.grey800};
-                    width: 100%; border: 1px solid ${colors.grey200}; padding: 0 16px; outline: none;
-                    transition: border-color 0.15s; &:focus { border-color: ${colors.blue500}; }
-                  `}
-                />
-              </div>
+              <DatePicker
+                date={date}
+                onChange={date => {
+                  setDate(date);
+                  handleFilterChange();
+                }}
+                label="날짜"
+              />
               <Spacing size={14} />
 
               {/* 시간 */}
@@ -264,13 +255,13 @@ export function RoomBookingPage() {
                   })}
                 </div>
               </div>
-            </div>
+            </Section>
 
             {validationError && (
-              <div css={css`padding: 0 24px;`}>
+              <Section>
                 <Spacing size={8} />
                 <span css={css`color: ${colors.red500}; font-size: 14px;`} role="alert">{validationError}</span>
-              </div>
+              </Section>
             )}
 
             <Spacing size={24} />
@@ -279,26 +270,27 @@ export function RoomBookingPage() {
 
             {/* 예약 가능 회의실 목록 */}
             {isFilterComplete && (
-              <div css={css`padding: 0 24px;`}>
-                <div css={css`display: flex; align-items: baseline; gap: 6px;`}>
+              <Section>
+                <Section.Header>
                   <Text typography="t5" fontWeight="bold" color={colors.grey900}>
                     예약 가능 회의실
                   </Text>
                   <Text typography="t7" fontWeight="medium" color={colors.grey500}>
                     {availableRooms.length}개
                   </Text>
-                </div>
+                </Section.Header>
                 <Spacing size={16} />
 
-                {availableRooms.length === 0 ? (
-                  <div css={css`padding: 40px 0; text-align: center; background: ${colors.grey50}; border-radius: 14px;`}>
+                <ListView
+                  data={availableRooms}
+                  ListEmptyComponent={
+                  <ListView.Empty>
                     <Text typography="t6" color={colors.grey500}>
                       조건에 맞는 회의실이 없습니다.
                     </Text>
-                  </div>
-                ) : (
-                  <div css={css`display: flex; flex-direction: column; gap: 10px;`}>
-                    {availableRooms.map((room: { id: string; name: string; floor: number; capacity: number; equipment: string[] }) => {
+                  </ListView.Empty>
+                  }
+                    renderItem={(room: { id: string; name: string; floor: number; capacity: number; equipment: string[] }) => {
                       const isSelected = selectedRoomId === room.id;
                       return (
                         <div
@@ -332,18 +324,17 @@ export function RoomBookingPage() {
                           />
                         </div>
                       );
-                    })}
-                  </div>
-                )}
+                    }}
+                  />
 
                 <Spacing size={16} />
                 <QueryClientConsumer>
-                  {(queryClient) => (
+                  {queryClient => (
                     <Mutation mutationFn={createReservation} onSuccess={(_data, variables) => {
                       queryClient.invalidateQueries({ queryKey: reservationKeys.detail(variables.date) });
                       queryClient.invalidateQueries({ queryKey: myReservationKeys.all });
                     }}>
-                      {(createMutation) => (
+                      {createMutation => (
                         <Button display="full" onClick={async () => {
                           if (!selectedRoomId) {
                             setErrorMessage('회의실을 선택해주세요.');
@@ -388,13 +379,14 @@ export function RoomBookingPage() {
                     </Mutation>
                   )}
                 </QueryClientConsumer>
-              </div>
+              </Section>
             )}
           </>
+          );
         }}
       </SuspenseQueries>
 
       <Spacing size={24} />
-    </div>
+    </PageContainer>
   );
 }
