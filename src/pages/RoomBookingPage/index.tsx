@@ -3,7 +3,7 @@ import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { Mutation, SuspenseQuery } from '@suspensive/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { Border, Button, ListRow, Select, Spacing, Text, Top } from '_tosslib/components';
@@ -27,47 +27,41 @@ export function RoomBookingPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [date, setDate] = useState(searchParams.get('date') || formatDate(new Date()));
-  const [startTime, setStartTime] = useState(searchParams.get('startTime') || '');
-  const [endTime, setEndTime] = useState(searchParams.get('endTime') || '');
-  const [attendees, setAttendees] = useState(Number(searchParams.get('attendees')) || 1);
-  const [equipment, setEquipment] = useState<string[]>(
-    searchParams.get('equipment') ? searchParams.get('equipment')!.split(',').filter(Boolean) : []
-  );
-  const [preferredFloor, setPreferredFloor] = useState<number | null>(
-    searchParams.get('floor') ? Number(searchParams.get('floor')) : null
-  );
+  const date = searchParams.get('date') || formatDate(new Date());
+  const startTime = searchParams.get('startTime') || '';
+  const endTime = searchParams.get('endTime') || '';
+  const attendees = Number(searchParams.get('attendees')) || 1;
+  const equipment = searchParams.get('equipment')?.split(',').filter(Boolean) ?? [];
+  const preferredFloor = searchParams.get('floor') ? Number(searchParams.get('floor')) : null;
+
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // URL 쿼리 파라미터 동기화
-  useEffect(() => {
-    const params: Record<string, string> = {};
-    if (date) params.date = date;
-    if (startTime) params.startTime = startTime;
-    if (endTime) params.endTime = endTime;
-    if (attendees > 1) params.attendees = String(attendees);
-    if (equipment.length > 0) params.equipment = equipment.join(',');
-    if (preferredFloor !== null) params.floor = String(preferredFloor);
-    setSearchParams(params, { replace: true });
-  }, [date, startTime, endTime, attendees, equipment, preferredFloor, setSearchParams]);
-
-  // 필터 변경 시 선택 초기화
-  const handleFilterChange = () => {
+  const updateFilter = (updates: Record<string, string | null>) => {
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === null) next.delete(key);
+      else next.set(key, value);
+    }
+    setSearchParams(next, { replace: true });
+    // 필터 변경 시 선택 초기화
     setSelectedRoomId(null);
     setErrorMessage(null);
   };
-
   // 입력 검증
-  let validationError: string | null = null;
   const hasTimeInputs = startTime !== '' && endTime !== '';
-  if (hasTimeInputs) {
-    if (endTime <= startTime) {
-      validationError = '종료 시간은 시작 시간보다 늦어야 합니다.';
-    } else if (attendees < 1) {
-      validationError = '참석 인원은 1명 이상이어야 합니다.';
+  const validationError = (() => {
+    if (hasTimeInputs) {
+      if (endTime <= startTime) {
+        return '종료 시간은 시작 시간보다 늦어야 합니다.';
+      }
+      if (attendees < 1) {
+        return '참석 인원은 1명 이상이어야 합니다.';
+      }
     }
-  }
+    return null;
+  })();
   const isFilterComplete = hasTimeInputs && !validationError;
 
   return (
@@ -118,14 +112,7 @@ export function RoomBookingPage() {
                 <Spacing size={16} />
 
                 {/* 날짜 */}
-                <DatePicker
-                  date={date}
-                  onChange={date => {
-                    setDate(date);
-                    handleFilterChange();
-                  }}
-                  label="날짜"
-                />
+                <DatePicker date={date} onChange={date => updateFilter({ date })} label="날짜" />
                 <Spacing size={14} />
 
                 {/* 시간 */}
@@ -133,10 +120,7 @@ export function RoomBookingPage() {
                   <FilterField label="시작 시간">
                     <Select
                       value={startTime}
-                      onChange={e => {
-                        setStartTime(e.target.value);
-                        handleFilterChange();
-                      }}
+                      onChange={e => updateFilter({ startTime: e.target.value })}
                       aria-label="시작 시간"
                     >
                       <option value="">선택</option>
@@ -150,10 +134,7 @@ export function RoomBookingPage() {
                   <FilterField label="종료 시간">
                     <Select
                       value={endTime}
-                      onChange={e => {
-                        setEndTime(e.target.value);
-                        handleFilterChange();
-                      }}
+                      onChange={e => updateFilter({ endTime: e.target.value })}
                       aria-label="종료 시간"
                     >
                       <option value="">선택</option>
@@ -174,10 +155,7 @@ export function RoomBookingPage() {
                       type="number"
                       min={1}
                       value={attendees}
-                      onChange={e => {
-                        setAttendees(Math.max(1, Number(e.target.value)));
-                        handleFilterChange();
-                      }}
+                      onChange={e => updateFilter({ attendees: String(Math.max(1, Number(e.target.value))) })}
                       aria-label="참석 인원"
                       css={numberInputStyle}
                     />
@@ -185,11 +163,7 @@ export function RoomBookingPage() {
                   <FilterField label="선호 층">
                     <Select
                       value={preferredFloor ?? ''}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setPreferredFloor(val === '' ? null : Number(val));
-                        handleFilterChange();
-                      }}
+                      onChange={e => updateFilter({ floor: e.target.value || null })}
                       aria-label="선호 층"
                     >
                       <option value="">전체</option>
@@ -215,8 +189,7 @@ export function RoomBookingPage() {
                       ariaLabel={EQUIPMENT_LABELS[eq]}
                       onClick={() => {
                         const next = equipment.includes(eq) ? equipment.filter(e => e !== eq) : [...equipment, eq];
-                        setEquipment(next);
-                        handleFilterChange();
+                        updateFilter({ equipment: next.length > 0 ? next.join(',') : null });
                       }}
                     >
                       {EQUIPMENT_LABELS[eq]}
