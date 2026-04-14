@@ -1,4 +1,3 @@
-import { css } from '@emotion/react';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { Mutation, SuspenseQueries } from '@suspensive/react-query';
 import { useQueryClient } from '@tanstack/react-query';
@@ -24,6 +23,7 @@ import {
   roomsQueryOptions,
 } from 'models/queryOptions';
 import { cancelReservation } from 'pages/remotes';
+import { pageTitleStyle } from 'styles/index';
 
 export function ReservationStatusPage() {
   const queryClient = useQueryClient();
@@ -45,14 +45,7 @@ export function ReservationStatusPage() {
 
   return (
     <PageContainer>
-      <Top.Top03
-        css={css`
-          padding-left: 24px;
-          padding-right: 24px;
-        `}
-      >
-        회의실 예약
-      </Top.Top03>
+      <Top.Top03 css={pageTitleStyle}>회의실 예약</Top.Top03>
 
       <Spacing size={24} />
 
@@ -95,12 +88,12 @@ export function ReservationStatusPage() {
 
                 <Timetable>
                   <Timetable.Header labels={HOUR_LABELS} />
-                  {rooms.map((room, index) => {
-                    const roomReservations = reservations.filter(r => r.roomId === room.id);
-                    return (
-                      <Timetable.Row key={room.id} label={room.name} index={index}>
-                        <Timeline>
-                          {roomReservations.map(res => {
+                  {rooms.map((room, index) => (
+                    <Timetable.Row key={room.id} label={room.name} index={index}>
+                      <Timeline>
+                        {reservations
+                          .filter(r => r.roomId === room.id)
+                          .map(res => {
                             const isActive = activeReservation === res.id;
                             return (
                               <Timeline.Range key={res.id} start={res.start} end={res.end}>
@@ -123,10 +116,9 @@ export function ReservationStatusPage() {
                               </Timeline.Range>
                             );
                           })}
-                        </Timeline>
-                      </Timetable.Row>
-                    );
-                  })}
+                      </Timeline>
+                    </Timetable.Row>
+                  ))}
                 </Timetable>
               </Section>
             )}

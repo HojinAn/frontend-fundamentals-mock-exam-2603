@@ -1,6 +1,11 @@
 import { css } from '@emotion/react';
 import { colors } from '_tosslib/constants/colors';
 
+export const pageTitleStyle = css`
+  padding-left: 24px;
+  padding-right: 24px;
+`;
+
 export const numberInputStyle = css`
   box-sizing: border-box;
   font-size: 16px;

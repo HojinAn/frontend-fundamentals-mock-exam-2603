@@ -1,4 +1,3 @@
-import { css } from '@emotion/react';
 import { ErrorBoundary, Suspense } from '@suspensive/react';
 import { Mutation, SuspenseQuery } from '@suspensive/react-query';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,7 +19,7 @@ import { TopNavigation } from 'components/common/TopNavigation';
 import { ALL_EQUIPMENT, EQUIPMENT_LABELS, TIME_SLOTS } from 'constants/reservation.constant';
 import { myReservationKeys, reservationKeys, reservationsQueryOptions, roomsQueryOptions } from 'models/queryOptions';
 import { createReservation } from 'pages/remotes';
-import { alertTextStyle, numberInputStyle } from 'styles/index';
+import { alertTextStyle, numberInputStyle, pageTitleStyle } from 'styles/index';
 
 export function RoomBookingPage() {
   const queryClient = useQueryClient();
@@ -69,14 +68,7 @@ export function RoomBookingPage() {
       <TopNavigation>
         <TopNavigation.Button onClick={() => navigate('/')}>← 예약 현황으로</TopNavigation.Button>
       </TopNavigation>
-      <Top.Top03
-        css={css`
-          padding-left: 24px;
-          padding-right: 24px;
-        `}
-      >
-        예약하기
-      </Top.Top03>
+      <Top.Top03 css={pageTitleStyle}>예약하기</Top.Top03>
 
       {errorMessage && (
         <Section>
@@ -169,8 +161,8 @@ export function RoomBookingPage() {
                       <option value="">전체</option>
                       {/* 필터링 */}
                       {[...new Set(rooms.map(r => r.floor))]
-                        .sort((a: number, b: number) => a - b)
-                        .map((f: number) => (
+                        .sort((a, b) => a - b)
+                        .map(f => (
                           <option key={f} value={f}>
                             {f}층
                           </option>
@@ -282,7 +274,7 @@ export function RoomBookingPage() {
                                       top={room.name}
                                       topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
                                       bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment
-                                        .map((e: string) => EQUIPMENT_LABELS[e])
+                                        .map(e => EQUIPMENT_LABELS[e])
                                         .join(', ')}`}
                                       bottomProps={{ typography: 't7', color: colors.grey600 }}
                                     />
