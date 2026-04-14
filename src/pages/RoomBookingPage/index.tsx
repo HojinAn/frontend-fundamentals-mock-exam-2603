@@ -36,18 +36,6 @@ export function RoomBookingPage() {
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // URL 쿼리 파라미터 동기화
-  const updateFilter = (updates: Record<string, string | null>) => {
-    const next = new URLSearchParams(searchParams);
-    for (const [key, value] of Object.entries(updates)) {
-      if (value === null) next.delete(key);
-      else next.set(key, value);
-    }
-    setSearchParams(next, { replace: true });
-    // 필터 변경 시 선택 초기화
-    setSelectedRoomId(null);
-    setErrorMessage(null);
-  };
   // 입력 검증
   const hasTimeInputs = startTime !== '' && endTime !== '';
   const validationError = (() => {
@@ -104,7 +92,17 @@ export function RoomBookingPage() {
                 <Spacing size={16} />
 
                 {/* 날짜 */}
-                <DatePicker date={date} onChange={date => updateFilter({ date })} label="날짜" />
+                <DatePicker
+                  date={date}
+                  onChange={date => {
+                    const next = new URLSearchParams(searchParams);
+                    next.set('date', date);
+                    setSearchParams(next, { replace: true });
+                    setSelectedRoomId(null);
+                    setErrorMessage(null);
+                  }}
+                  label="날짜"
+                />
                 <Spacing size={14} />
 
                 {/* 시간 */}
@@ -112,7 +110,13 @@ export function RoomBookingPage() {
                   <FilterField label="시작 시간">
                     <Select
                       value={startTime}
-                      onChange={e => updateFilter({ startTime: e.target.value })}
+                      onChange={e => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set('startTime', e.target.value);
+                        setSearchParams(next, { replace: true });
+                        setSelectedRoomId(null);
+                        setErrorMessage(null);
+                      }}
                       aria-label="시작 시간"
                     >
                       <option value="">선택</option>
@@ -126,7 +130,13 @@ export function RoomBookingPage() {
                   <FilterField label="종료 시간">
                     <Select
                       value={endTime}
-                      onChange={e => updateFilter({ endTime: e.target.value })}
+                      onChange={e => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set('endTime', e.target.value);
+                        setSearchParams(next, { replace: true });
+                        setSelectedRoomId(null);
+                        setErrorMessage(null);
+                      }}
                       aria-label="종료 시간"
                     >
                       <option value="">선택</option>
@@ -147,7 +157,13 @@ export function RoomBookingPage() {
                       type="number"
                       min={1}
                       value={attendees}
-                      onChange={e => updateFilter({ attendees: String(Math.max(1, Number(e.target.value))) })}
+                      onChange={e => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set('attendees', String(Math.max(1, Number(e.target.value))));
+                        setSearchParams(next, { replace: true });
+                        setSelectedRoomId(null);
+                        setErrorMessage(null);
+                      }}
                       aria-label="참석 인원"
                       css={numberInputStyle}
                     />
@@ -155,7 +171,17 @@ export function RoomBookingPage() {
                   <FilterField label="선호 층">
                     <Select
                       value={preferredFloor ?? ''}
-                      onChange={e => updateFilter({ floor: e.target.value || null })}
+                      onChange={e => {
+                        const next = new URLSearchParams(searchParams);
+                        if (e.target.value) {
+                          next.set('floor', e.target.value);
+                        } else {
+                          next.delete('floor');
+                        }
+                        setSearchParams(next, { replace: true });
+                        setSelectedRoomId(null);
+                        setErrorMessage(null);
+                      }}
                       aria-label="선호 층"
                     >
                       <option value="">전체</option>
@@ -180,8 +206,18 @@ export function RoomBookingPage() {
                       isSelected={equipment.includes(eq)}
                       ariaLabel={EQUIPMENT_LABELS[eq]}
                       onClick={() => {
-                        const next = equipment.includes(eq) ? equipment.filter(e => e !== eq) : [...equipment, eq];
-                        updateFilter({ equipment: next.length > 0 ? next.join(',') : null });
+                        const nextEquipment = equipment.includes(eq)
+                          ? equipment.filter(e => e !== eq)
+                          : [...equipment, eq];
+                        const next = new URLSearchParams(searchParams);
+                        if (nextEquipment.length > 0) {
+                          next.set('equipment', nextEquipment.join(','));
+                        } else {
+                          next.delete('equipment');
+                        }
+                        setSearchParams(next, { replace: true });
+                        setSelectedRoomId(null);
+                        setErrorMessage(null);
                       }}
                     >
                       {EQUIPMENT_LABELS[eq]}
