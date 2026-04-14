@@ -16,7 +16,7 @@ import { Section } from 'components/common/Section';
 import { SelectableCard } from 'components/common/SelectableCard';
 import { TextBanner } from 'components/common/TextBanner';
 import { TopNavigation } from 'components/common/TopNavigation';
-import { ALL_EQUIPMENT, EQUIPMENT_LABELS, TIME_SLOTS } from 'constants/reservation.constant';
+import { ALL_EQUIPMENT, EQUIPMENT_LABELS, TIME_SLOTS, formatEquipment } from 'constants/reservation.constant';
 import { myReservationKeys, reservationKeys, reservationsQueryOptions, roomsQueryOptions } from 'models/queryOptions';
 import { createReservation } from 'pages/remotes';
 import { alertTextStyle, numberInputStyle, pageTitleStyle } from 'styles/index';
@@ -269,9 +269,7 @@ export function RoomBookingPage() {
                                   <ListRow.Text2Rows
                                     top={room.name}
                                     topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                                    bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment
-                                      .map(e => EQUIPMENT_LABELS[e])
-                                      .join(', ')}`}
+                                    bottom={`${room.floor}층 · ${room.capacity}명 · ${formatEquipment(room.equipment)}`}
                                     bottomProps={{ typography: 't7', color: colors.grey600 }}
                                   />
                                 }

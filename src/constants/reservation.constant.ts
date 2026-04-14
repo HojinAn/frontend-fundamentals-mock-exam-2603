@@ -16,3 +16,7 @@ for (let h = 9; h <= 20; h++) {
 }
 
 export const HOUR_LABELS = TIME_SLOTS.filter(t => t.endsWith(':00'));
+
+export function formatEquipment(equipment: string[], fallback = '') {
+  return equipment.map(e => EQUIPMENT_LABELS[e]).join(', ') || fallback;
+}

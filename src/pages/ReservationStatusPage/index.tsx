@@ -14,7 +14,7 @@ import { TextBanner } from 'components/common/TextBanner';
 import { Timeline } from 'components/common/Timeline';
 import { Timetable } from 'components/common/Timetable';
 import { Tooltip } from 'components/common/Tooltip';
-import { EQUIPMENT_LABELS, HOUR_LABELS } from 'constants/reservation.constant';
+import { HOUR_LABELS, formatEquipment } from 'constants/reservation.constant';
 import {
   myReservationKeys,
   myReservationsQueryOptions,
@@ -109,7 +109,7 @@ export function ReservationStatusPage() {
                                     </div>
                                     <div>{res.attendees}명</div>
                                     {res.equipment.length > 0 && (
-                                      <div>{res.equipment.map(e => EQUIPMENT_LABELS[e]).join(', ')}</div>
+                                      <div>{formatEquipment(res.equipment)}</div>
                                     )}
                                   </Tooltip>
                                 )}
@@ -185,9 +185,7 @@ export function ReservationStatusPage() {
                           <ListRow.Text2Rows
                             top={rooms.find(r => r.id === res.roomId)?.name ?? res.roomId}
                             topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                            bottom={`${res.date} ${res.start}~${res.end} · ${res.attendees}명 · ${
-                              res.equipment.map(e => EQUIPMENT_LABELS[e]).join(', ') || '장비 없음'
-                            }`}
+                            bottom={`${res.date} ${res.start}~${res.end} · ${res.attendees}명 · ${formatEquipment(res.equipment, '장비 없음')}`}
                             bottomProps={{ typography: 't7', color: colors.grey600 }}
                           />
                         }
