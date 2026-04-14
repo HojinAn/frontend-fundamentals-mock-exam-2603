@@ -1,5 +1,5 @@
 import { ErrorBoundary, Suspense } from '@suspensive/react';
-import { Mutation, SuspenseQuery } from '@suspensive/react-query';
+import { Mutation, SuspenseQueries, SuspenseQuery } from '@suspensive/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
@@ -216,80 +216,75 @@ export function RoomBookingPage() {
                 </Section>
               }
             >
-              <SuspenseQuery {...reservationsQueryOptions(date)}>
-                {({ data: reservations }) => (
-                  <SuspenseQuery
-                    {...roomsQueryOptions()}
-                    select={rooms =>
-                      rooms
-                        .filter(room => {
-                          if (room.capacity < attendees) return false;
-                          if (!equipment.every(eq => room.equipment.includes(eq))) return false;
-                          if (preferredFloor !== null && room.floor !== preferredFloor) return false;
-                          const hasConflict = reservations.some(
-                            r => r.roomId === room.id && r.date === date && r.start < endTime && r.end > startTime
-                          );
-                          if (hasConflict) return false;
-                          return true;
-                        })
-                        .sort((a, b) => {
-                          if (a.floor !== b.floor) return a.floor - b.floor;
-                          return a.name.localeCompare(b.name);
-                        })
-                    }
-                  >
-                    {({ data: availableRooms }) => (
-                      <>
-                        <Section.Header>
-                          <Text typography="t5" fontWeight="bold" color={colors.grey900}>
-                            예약 가능 회의실
-                          </Text>
-                          <Text typography="t7" fontWeight="medium" color={colors.grey500}>
-                            {availableRooms.length}개
-                          </Text>
-                        </Section.Header>
-                        <Spacing size={16} />
+              <SuspenseQueries queries={[roomsQueryOptions(), reservationsQueryOptions(date)]}>
+                {([{ data: rooms }, { data: reservations }]) => {
+                  const availableRooms = rooms
+                    .filter(room => {
+                      if (room.capacity < attendees) return false;
+                      if (!equipment.every(eq => room.equipment.includes(eq))) return false;
+                      if (preferredFloor !== null && room.floor !== preferredFloor) return false;
+                      const hasConflict = reservations.some(
+                        r => r.roomId === room.id && r.date === date && r.start < endTime && r.end > startTime
+                      );
+                      if (hasConflict) return false;
+                      return true;
+                    })
+                    .sort((a, b) => {
+                      if (a.floor !== b.floor) return a.floor - b.floor;
+                      return a.name.localeCompare(b.name);
+                    });
 
-                        <ListView
-                          data={availableRooms}
-                          ListEmptyComponent={
-                            <ListView.Empty>
-                              <Text typography="t6" color={colors.grey500}>
-                                조건에 맞는 회의실이 없습니다.
-                              </Text>
-                            </ListView.Empty>
-                          }
-                          renderItem={room => {
-                            const isSelected = selectedRoomId === room.id;
-                            return (
-                              <SelectableCard
-                                key={room.id}
-                                isSelected={isSelected}
-                                onClick={() => setSelectedRoomId(room.id)}
-                                ariaLabel={room.name}
-                              >
-                                <ListRow
-                                  contents={
-                                    <ListRow.Text2Rows
-                                      top={room.name}
-                                      topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                                      bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment
-                                        .map(e => EQUIPMENT_LABELS[e])
-                                        .join(', ')}`}
-                                      bottomProps={{ typography: 't7', color: colors.grey600 }}
-                                    />
-                                  }
-                                  right={isSelected ? <SelectableCard.Badge>선택됨</SelectableCard.Badge> : undefined}
-                                />
-                              </SelectableCard>
-                            );
-                          }}
-                        />
-                      </>
-                    )}
-                  </SuspenseQuery>
-                )}
-              </SuspenseQuery>
+                  return (
+                    <>
+                      <Section.Header>
+                        <Text typography="t5" fontWeight="bold" color={colors.grey900}>
+                          예약 가능 회의실
+                        </Text>
+                        <Text typography="t7" fontWeight="medium" color={colors.grey500}>
+                          {availableRooms.length}개
+                        </Text>
+                      </Section.Header>
+                      <Spacing size={16} />
+
+                      <ListView
+                        data={availableRooms}
+                        ListEmptyComponent={
+                          <ListView.Empty>
+                            <Text typography="t6" color={colors.grey500}>
+                              조건에 맞는 회의실이 없습니다.
+                            </Text>
+                          </ListView.Empty>
+                        }
+                        renderItem={room => {
+                          const isSelected = selectedRoomId === room.id;
+                          return (
+                            <SelectableCard
+                              key={room.id}
+                              isSelected={isSelected}
+                              onClick={() => setSelectedRoomId(room.id)}
+                              ariaLabel={room.name}
+                            >
+                              <ListRow
+                                contents={
+                                  <ListRow.Text2Rows
+                                    top={room.name}
+                                    topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
+                                    bottom={`${room.floor}층 · ${room.capacity}명 · ${room.equipment
+                                      .map(e => EQUIPMENT_LABELS[e])
+                                      .join(', ')}`}
+                                    bottomProps={{ typography: 't7', color: colors.grey600 }}
+                                  />
+                                }
+                                right={isSelected ? <SelectableCard.Badge>선택됨</SelectableCard.Badge> : undefined}
+                              />
+                            </SelectableCard>
+                          );
+                        }}
+                      />
+                    </>
+                  );
+                }}
+              </SuspenseQueries>
             </Suspense>
 
             <Spacing size={16} />
