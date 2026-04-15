@@ -87,7 +87,9 @@ export function ReservationStatusPage() {
                 <Spacing size={16} />
 
                 <Timetable>
+                  {/* 시간 헤더 */}
                   <Timetable.Header labels={HOUR_LABELS} />
+                  {/* 회의실별 타임라인 */}
                   {rooms.map((room, index) => (
                     <Timetable.Row key={room.id} label={room.name} index={index}>
                       <Timeline>
@@ -108,9 +110,7 @@ export function ReservationStatusPage() {
                                       {res.start} ~ {res.end}
                                     </div>
                                     <div>{res.attendees}명</div>
-                                    {res.equipment.length > 0 && (
-                                      <div>{formatEquipment(res.equipment)}</div>
-                                    )}
+                                    {res.equipment.length > 0 && <div>{formatEquipment(res.equipment)}</div>}
                                   </Tooltip>
                                 )}
                               </Timeline.Range>
@@ -185,7 +185,10 @@ export function ReservationStatusPage() {
                           <ListRow.Text2Rows
                             top={rooms.find(r => r.id === res.roomId)?.name ?? res.roomId}
                             topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                            bottom={`${res.date} ${res.start}~${res.end} · ${res.attendees}명 · ${formatEquipment(res.equipment, '장비 없음')}`}
+                            bottom={`${res.date} ${res.start}~${res.end} · ${res.attendees}명 · ${formatEquipment(
+                              res.equipment,
+                              '장비 없음'
+                            )}`}
                             bottomProps={{ typography: 't7', color: colors.grey600 }}
                           />
                         }

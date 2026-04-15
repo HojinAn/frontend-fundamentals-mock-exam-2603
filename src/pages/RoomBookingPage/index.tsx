@@ -22,8 +22,8 @@ import { createReservation } from 'pages/remotes';
 import { alertTextStyle, numberInputStyle, pageTitleStyle } from 'styles/index';
 
 export function RoomBookingPage() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const date = searchParams.get('date') || formatDate(new Date());
@@ -67,6 +67,7 @@ export function RoomBookingPage() {
 
       <Spacing size={24} />
 
+      {/* 예약 조건 입력 */}
       <ErrorBoundary
         fallback={({ error, reset }) => (
           <Section>
@@ -75,7 +76,6 @@ export function RoomBookingPage() {
           </Section>
         )}
       >
-        {/* 예약 조건 입력 */}
         <Suspense
           fallback={
             <Section>
