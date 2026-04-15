@@ -1,209 +1,130 @@
-import { css } from '@emotion/react';
+import { ErrorBoundary, Suspense } from '@suspensive/react';
+import { Mutation, SuspenseQueries } from '@suspensive/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Top, Spacing, Border, Button, Text, ListRow } from '_tosslib/components';
+import { Link, useLocation } from 'react-router-dom';
+
+import { Border, Button, ListRow, Spacing, Text, Top } from '_tosslib/components';
 import { colors } from '_tosslib/constants/colors';
-import { getRooms, getReservations, getMyReservations, cancelReservation } from 'pages/remotes';
-
-const EQUIPMENT_LABELS: Record<string, string> = {
-  tv: 'TV',
-  whiteboard: '화이트보드',
-  video: '화상장비',
-  speaker: '스피커',
-};
-
-const TIME_SLOTS: string[] = [];
-for (let h = 9; h <= 20; h++) {
-  TIME_SLOTS.push(`${String(h).padStart(2, '0')}:00`);
-  if (h < 20) {
-    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:30`);
-  }
-}
-
-const HOUR_LABELS = TIME_SLOTS.filter(t => t.endsWith(':00'));
-const TIMELINE_START = 9;
-const TIMELINE_END = 20;
-const TOTAL_MINUTES = (TIMELINE_END - TIMELINE_START) * 60;
-
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(':').map(Number);
-  return (h - TIMELINE_START) * 60 + m;
-}
+import { DatePicker, formatDate } from 'components/common/DatePicker';
+import { ListView } from 'components/common/ListView';
+import { PageContainer } from 'components/common/PageContainer';
+import { Section } from 'components/common/Section';
+import { TextBanner } from 'components/common/TextBanner';
+import { Timeline } from 'components/common/Timeline';
+import { Timetable } from 'components/common/Timetable';
+import { Tooltip } from 'components/common/Tooltip';
+import { HOUR_LABELS, formatEquipment } from 'constants/reservation.constant';
+import {
+  myReservationKeys,
+  myReservationsQueryOptions,
+  reservationKeys,
+  reservationsQueryOptions,
+  roomsQueryOptions,
+} from 'models/queryOptions';
+import { cancelReservation } from 'pages/remotes';
+import { pageTitleStyle } from 'styles/index';
 
 export function ReservationStatusPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
   const [date, setDate] = useState(formatDate(new Date()));
 
+  const location = useLocation();
   const locationState = location.state as { message?: string } | null;
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
-    locationState?.message ? { type: 'success', text: locationState.message } : null
-  );
-
   useEffect(() => {
     if (locationState?.message) {
       window.history.replaceState({}, '');
     }
   }, [locationState]);
 
-  const { data: rooms = [] } = useQuery(['rooms'], getRooms);
-  const { data: reservations = [] } = useQuery(['reservations', date], () => getReservations(date), { enabled: !!date });
-  const { data: myReservationList = [] } = useQuery(['myReservations'], getMyReservations);
-
-  const cancelMutation = useMutation((id: string) => cancelReservation(id), {
-    onSuccess: () => {
-      queryClient.invalidateQueries(['reservations']);
-      queryClient.invalidateQueries(['myReservations']);
-    },
-  });
-
-  const handleCancel = async (id: string) => {
-    try {
-      await cancelMutation.mutateAsync(id);
-      setMessage({ type: 'success', text: '예약이 취소되었습니다.' });
-    } catch {
-      setMessage({ type: 'error', text: '취소에 실패했습니다.' });
-    }
-  };
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(
+    locationState?.message ? { type: 'success', text: locationState.message } : null
+  );
 
   const [activeReservation, setActiveReservation] = useState<string | null>(null);
 
-  const getRoomName = (roomId: string) => rooms.find((r: { id: string; name: string }) => r.id === roomId)?.name ?? roomId;
-
   return (
-    <div css={css`background: ${colors.white}; padding-bottom: 40px;`}>
-      <Top.Top03 css={css`padding-left: 24px; padding-right: 24px;`}>
-        회의실 예약
-      </Top.Top03>
+    <PageContainer>
+      <Top.Top03 css={pageTitleStyle}>회의실 예약</Top.Top03>
 
       <Spacing size={24} />
 
       {/* 날짜 선택 */}
-      <div css={css`padding: 0 24px;`}>
+      <Section>
         <Text typography="t5" fontWeight="bold" color={colors.grey900}>
           날짜 선택
         </Text>
         <Spacing size={16} />
-        <div css={css`display: flex; flex-direction: column; gap: 6px;`}>
-          <input
-            type="date"
-            value={date}
-            min={formatDate(new Date())}
-            onChange={e => setDate(e.target.value)}
-            aria-label="날짜"
-            css={css`
-              box-sizing: border-box; font-size: 16px; font-weight: 500; line-height: 1.5; height: 48px;
-              background-color: ${colors.grey50}; border-radius: 12px; color: ${colors.grey800};
-              width: 100%; border: 1px solid ${colors.grey200}; padding: 0 16px; outline: none;
-              transition: border-color 0.15s; &:focus { border-color: ${colors.blue500}; }
-            `}
-          />
-        </div>
-      </div>
+        <DatePicker date={date} onChange={setDate} />
+      </Section>
 
       <Spacing size={24} />
       <Border size={8} />
       <Spacing size={24} />
 
       {/* 예약 현황 타임라인 */}
-      <div css={css`padding: 0 24px;`}>
-        <Text typography="t5" fontWeight="bold" color={colors.grey900}>
-          예약 현황
-        </Text>
-        <Spacing size={16} />
+      <ErrorBoundary
+        fallback={({ error, reset }) => (
+          <Section>
+            <Button onClick={reset}>리셋</Button>
+            {error.message}
+          </Section>
+        )}
+      >
+        <Suspense
+          fallback={
+            <Section>
+              <Text>로딩중...</Text>
+            </Section>
+          }
+        >
+          <SuspenseQueries queries={[roomsQueryOptions(), reservationsQueryOptions(date)]}>
+            {([{ data: rooms }, { data: reservations }]) => (
+              <Section>
+                <Text typography="t5" fontWeight="bold" color={colors.grey900}>
+                  예약 현황
+                </Text>
+                <Spacing size={16} />
 
-        <div css={css`background: ${colors.grey50}; border-radius: 14px; padding: 16px;`}>
-          {/* 시간 헤더 */}
-          <div css={css`display: flex; align-items: flex-end; margin-bottom: 8px;`}>
-            <div css={css`width: 80px; flex-shrink: 0; padding-right: 8px;`} />
-            <div css={css`flex: 1; position: relative; height: 18px;`}>
-              {HOUR_LABELS.map(t => {
-                const left = (timeToMinutes(t) / TOTAL_MINUTES) * 100;
-                return (
-                  <Text
-                    key={t}
-                    typography="t7"
-                    fontWeight="regular"
-                    color={colors.grey400}
-                    css={css`
-                      position: absolute; left: ${left}%; transform: translateX(-50%);
-                      font-size: 10px; letter-spacing: -0.3px;
-                    `}
-                  >
-                    {t.slice(0, 2)}
-                  </Text>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* 회의실별 타임라인 */}
-          {rooms.map((room: { id: string; name: string }, index: number) => {
-            const roomReservations = reservations.filter((r: { roomId: string }) => r.roomId === room.id);
-            return (
-              <div
-                key={room.id}
-                css={css`display: flex; align-items: center; height: 32px; ${index > 0 ? 'margin-top: 4px;' : ''}`}
-              >
-                <div css={css`width: 80px; flex-shrink: 0; padding-right: 8px;`}>
-                  <Text typography="t7" fontWeight="medium" color={colors.grey700} ellipsisAfterLines={1}
-                    css={css`font-size: 12px;`}
-                  >
-                    {room.name}
-                  </Text>
-                </div>
-                <div css={css`flex: 1; height: 24px; background: ${colors.white}; border-radius: 6px; position: relative; overflow: visible;`}>
-                  {roomReservations.map((res: { id: string; start: string; end: string; attendees: number; equipment: string[] }) => {
-                    const left = (timeToMinutes(res.start) / TOTAL_MINUTES) * 100;
-                    const width = ((timeToMinutes(res.end) - timeToMinutes(res.start)) / TOTAL_MINUTES) * 100;
-                    const isActive = activeReservation === res.id;
-                    return (
-                      <div key={res.id} css={css`position: absolute; left: ${left}%; width: ${width}%; height: 100%;`}>
-                        <div
-                          role="button"
-                          aria-label={`${room.name} ${res.start}-${res.end} 예약 상세`}
-                          onClick={() => setActiveReservation(isActive ? null : res.id)}
-                          css={css`
-                            width: 100%; height: 100%; background: ${colors.blue400}; border-radius: 4px;
-                            opacity: ${isActive ? 1 : 0.75}; cursor: pointer; transition: opacity 0.15s;
-                            &:hover { opacity: 1; }
-                          `}
-                        />
-                        {isActive && (
-                          <div
-                            role="tooltip"
-                            css={css`
-                              position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 6px;
-                              background: ${colors.grey900}; color: ${colors.white}; padding: 8px 12px;
-                              border-radius: 8px; font-size: 12px; white-space: nowrap; z-index: 10;
-                              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); line-height: 1.6;
-                            `}
-                          >
-                            <div>{res.start} ~ {res.end}</div>
-                            <div>{res.attendees}명</div>
-                            {res.equipment.length > 0 && (
-                              <div>{res.equipment.map((e: string) => EQUIPMENT_LABELS[e]).join(', ')}</div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                <Timetable>
+                  {/* 시간 헤더 */}
+                  <Timetable.Header labels={HOUR_LABELS} />
+                  {/* 회의실별 타임라인 */}
+                  {rooms.map((room, index) => (
+                    <Timetable.Row key={room.id} label={room.name} index={index}>
+                      <Timeline>
+                        {reservations
+                          .filter(r => r.roomId === room.id)
+                          .map(res => {
+                            const isActive = activeReservation === res.id;
+                            return (
+                              <Timeline.Range key={res.id} start={res.start} end={res.end}>
+                                <Timeline.Track
+                                  aria-label={`${room.name} ${res.start}-${res.end} 예약 상세`}
+                                  onClick={() => setActiveReservation(isActive ? null : res.id)}
+                                  isActive={isActive}
+                                />
+                                {isActive && (
+                                  <Tooltip>
+                                    <div>
+                                      {res.start} ~ {res.end}
+                                    </div>
+                                    <div>{res.attendees}명</div>
+                                    {res.equipment.length > 0 && <div>{formatEquipment(res.equipment)}</div>}
+                                  </Tooltip>
+                                )}
+                              </Timeline.Range>
+                            );
+                          })}
+                      </Timeline>
+                    </Timetable.Row>
+                  ))}
+                </Timetable>
+              </Section>
+            )}
+          </SuspenseQueries>
+        </Suspense>
+      </ErrorBoundary>
 
       <Spacing size={24} />
       <Border size={8} />
@@ -211,95 +132,115 @@ export function ReservationStatusPage() {
 
       {/* 메시지 배너 */}
       {message && (
-        <div css={css`padding: 0 24px;`}>
-          <div
-            css={css`
-              padding: 10px 14px; border-radius: 10px;
-              background: ${message.type === 'success' ? colors.blue50 : colors.red50};
-              display: flex; align-items: center; gap: 8px;
-            `}
-          >
-            <Text
-              typography="t7"
-              fontWeight="medium"
-              color={message.type === 'success' ? colors.blue600 : colors.red500}
-            >
-              {message.text}
-            </Text>
-          </div>
+        <Section>
+          <TextBanner type={message.type} text={message.text} />
           <Spacing size={12} />
-        </div>
+        </Section>
       )}
 
       {/* 내 예약 목록 */}
-      <div css={css`padding: 0 24px;`}>
-        <div css={css`display: flex; align-items: baseline; gap: 6px;`}>
-          <Text typography="t5" fontWeight="bold" color={colors.grey900}>
-            내 예약
-          </Text>
-          {myReservationList.length > 0 && (
-            <Text typography="t7" fontWeight="medium" color={colors.grey500}>
-              {myReservationList.length}건
-            </Text>
-          )}
-        </div>
-        <Spacing size={16} />
-
-        {myReservationList.length === 0 ? (
-          <div css={css`padding: 40px 0; text-align: center; background: ${colors.grey50}; border-radius: 14px;`}>
-            <Text typography="t6" color={colors.grey500}>
-              예약 내역이 없습니다.
-            </Text>
-          </div>
-        ) : (
-          <div css={css`display: flex; flex-direction: column; gap: 10px;`}>
-            {myReservationList.map((res: { id: string; roomId: string; date: string; start: string; end: string; attendees: number; equipment: string[] }) => (
-              <div
-                key={res.id}
-                css={css`padding: 14px 16px; border-radius: 14px; background: ${colors.grey50}; border: 1px solid ${colors.grey200};`}
-              >
-                <ListRow
-                  contents={
-                    <ListRow.Text2Rows
-                      top={getRoomName(res.roomId)}
-                      topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
-                      bottom={`${res.date} ${res.start}~${res.end} · ${res.attendees}명 · ${res.equipment.map((e: string) => EQUIPMENT_LABELS[e]).join(', ') || '장비 없음'}`}
-                      bottomProps={{ typography: 't7', color: colors.grey600 }}
-                    />
-                  }
-                  right={
-                    <Button
-                      type="danger"
-                      style="weak"
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm('정말 취소하시겠습니까?')) {
-                          handleCancel(res.id);
-                        }
-                      }}
-                    >
-                      취소
-                    </Button>
-                  }
-                />
-              </div>
-            ))}
-          </div>
+      <ErrorBoundary
+        fallback={({ error, reset }) => (
+          <Section>
+            <Button onClick={reset}>리셋</Button>
+            {error.message}
+          </Section>
         )}
-      </div>
+      >
+        <Suspense
+          fallback={
+            <Section>
+              <Text>로딩중...</Text>
+            </Section>
+          }
+        >
+          <SuspenseQueries queries={[roomsQueryOptions(), myReservationsQueryOptions()]}>
+            {([{ data: rooms }, { data: myReservationList }]) => (
+              <Section>
+                <Section.Header>
+                  <Text typography="t5" fontWeight="bold" color={colors.grey900}>
+                    내 예약
+                  </Text>
+                  {myReservationList.length > 0 && (
+                    <Text typography="t7" fontWeight="medium" color={colors.grey500}>
+                      {myReservationList.length}건
+                    </Text>
+                  )}
+                </Section.Header>
+                <Spacing size={16} />
+
+                <ListView
+                  ListEmptyComponent={
+                    <ListView.Empty>
+                      <Text typography="t6" color={colors.grey500}>
+                        예약 내역이 없습니다.
+                      </Text>
+                    </ListView.Empty>
+                  }
+                  data={myReservationList}
+                  renderItem={res => (
+                    <ListView.Item key={res.id}>
+                      <ListRow
+                        contents={
+                          <ListRow.Text2Rows
+                            top={rooms.find(r => r.id === res.roomId)?.name ?? res.roomId}
+                            topProps={{ typography: 't6', fontWeight: 'bold', color: colors.grey900 }}
+                            bottom={`${res.date} ${res.start}~${res.end} · ${res.attendees}명 · ${formatEquipment(
+                              res.equipment,
+                              '장비 없음'
+                            )}`}
+                            bottomProps={{ typography: 't7', color: colors.grey600 }}
+                          />
+                        }
+                        right={
+                          <Mutation
+                            mutationFn={cancelReservation}
+                            onSuccess={() => {
+                              queryClient.invalidateQueries({ queryKey: reservationKeys.all });
+                              queryClient.invalidateQueries({ queryKey: myReservationKeys.all });
+                              setMessage({ type: 'success', text: '예약이 취소되었습니다.' });
+                            }}
+                            onError={() => setMessage({ type: 'error', text: '취소에 실패했습니다.' })}
+                          >
+                            {cancelMutation => (
+                              <Button
+                                type="danger"
+                                style="weak"
+                                size="small"
+                                onClick={async e => {
+                                  e.stopPropagation();
+                                  if (window.confirm('정말 취소하시겠습니까?')) {
+                                    await cancelMutation.mutateAsync(res.id);
+                                  }
+                                }}
+                              >
+                                취소
+                              </Button>
+                            )}
+                          </Mutation>
+                        }
+                      />
+                    </ListView.Item>
+                  )}
+                />
+              </Section>
+            )}
+          </SuspenseQueries>
+        </Suspense>
+      </ErrorBoundary>
 
       <Spacing size={24} />
       <Border size={8} />
       <Spacing size={24} />
 
       {/* 예약하기 버튼 */}
-      <div css={css`padding: 0 24px;`}>
-        <Button display="full" onClick={() => navigate('/booking')}>
-          예약하기
-        </Button>
-      </div>
+      <Section>
+        <Link to="/booking">
+          <Button display="full">예약하기</Button>
+        </Link>
+      </Section>
+
       <Spacing size={24} />
-    </div>
+    </PageContainer>
   );
 }

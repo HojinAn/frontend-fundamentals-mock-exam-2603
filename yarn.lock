@@ -231,6 +231,16 @@
   dependencies:
     css-tree "^3.0.0"
 
+"@colors/colors@1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@colors/colors/-/colors-1.5.0.tgz#bb504579c1cae923e6576a4f5da43d25f97bdbd9"
+  integrity sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==
+
+"@commander-js/extra-typings@^13.0.0":
+  version "13.1.0"
+  resolved "https://registry.yarnpkg.com/@commander-js/extra-typings/-/extra-typings-13.1.0.tgz#026e29b04401c92fc4307223fbaadf1ff3e5551e"
+  integrity sha512-q5P52BYb1hwVWE6dtID7VvuJWrlfbCv4klj7BjUUOqMz4jbSZD4C9fJ9lRjL2jnBGTg+gDDlaXN51rkWcLk4fg==
+
 "@csstools/color-helpers@^6.0.2":
   version "6.0.2"
   resolved "https://registry.yarnpkg.com/@csstools/color-helpers/-/color-helpers-6.0.2.tgz#82c59fd30649cf0b4d3c82160489748666e6550b"
@@ -1012,6 +1022,32 @@
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.1.0.tgz#a79b55dbaf8604812f52d140b2c9ab41bc150bb8"
   integrity sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==
+
+"@suspensive/react-query-4@^3.20.2":
+  version "3.20.2"
+  resolved "https://registry.yarnpkg.com/@suspensive/react-query-4/-/react-query-4-3.20.2.tgz#c66c6a2febe87231c5b2975f61fc7cefbd438a34"
+  integrity sha512-tJzuRPssEn5mAFI5Koh0fxj0jLPrqtwccqAG8TFqgVYfdJ90NJQlagHuGTYz/k0ofaONM6cEvpU3QuH1sjMjpg==
+
+"@suspensive/react-query-5@^3.20.2":
+  version "3.20.2"
+  resolved "https://registry.yarnpkg.com/@suspensive/react-query-5/-/react-query-5-3.20.2.tgz#2b24b9c6a1986dc1d1f1ac8ad5709f87f4ff423d"
+  integrity sha512-YxdNOS7BdSb/0oKfFuDf05MUElMlqNNBbTdESkMgXKS5paaNQd/ut5DKu/oMJF0pIBp2NFUVOSsPYvpSZB8NIw==
+
+"@suspensive/react-query@^3.20.2":
+  version "3.20.2"
+  resolved "https://registry.yarnpkg.com/@suspensive/react-query/-/react-query-3.20.2.tgz#139a2498f332a5c12b88b927451a713c010f4a8f"
+  integrity sha512-4jBPOizBW6wFrCUytJXEzVqf+fyvt0dNY9co/s/Js95Y5Mq0lF1FmOXLXd7HpSuSIsk31Xx72kFsryOK9zdNBQ==
+  dependencies:
+    "@commander-js/extra-typings" "^13.0.0"
+    "@suspensive/react-query-4" "^3.20.2"
+    "@suspensive/react-query-5" "^3.20.2"
+    cli-table3 "^0.6.5"
+    commander "^13.0.0"
+
+"@suspensive/react@^3.20.2":
+  version "3.20.2"
+  resolved "https://registry.yarnpkg.com/@suspensive/react/-/react-3.20.2.tgz#d2dfca655593cd184ae9d035dcc9fb995c0e034f"
+  integrity sha512-BSh7PidCZlfpW8aXgldNf9n70PTTFw4yo4Zzev+yYSWya6SbR3v8DXsQnA7lJILNztnw22iYnjV6Nmumhhn9rA==
 
 "@tanstack/query-core@4.43.0":
   version "4.43.0"
@@ -1851,6 +1887,15 @@ cli-spinners@^2.5.0:
   resolved "https://registry.yarnpkg.com/cli-spinners/-/cli-spinners-2.9.2.tgz#1773a8f4b9c4d6ac31563df53b3fc1d79462fe41"
   integrity sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==
 
+cli-table3@^0.6.5:
+  version "0.6.5"
+  resolved "https://registry.yarnpkg.com/cli-table3/-/cli-table3-0.6.5.tgz#013b91351762739c16a9567c21a04632e449bf2f"
+  integrity sha512-+W/5efTR7y5HRD7gACw9yQjqMVvEMLBHmboM/kPWam+H+Hmyrgjh6YncVKK122YZkXrLudzTuAukUw9FnMf7IQ==
+  dependencies:
+    string-width "^4.2.0"
+  optionalDependencies:
+    "@colors/colors" "1.5.0"
+
 cli-width@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/cli-width/-/cli-width-3.0.0.tgz#a2f48437a2caa9a22436e794bf071ec9e61cedf6"
@@ -1900,6 +1945,11 @@ combined-stream@^1.0.8:
   integrity sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==
   dependencies:
     delayed-stream "~1.0.0"
+
+commander@^13.0.0:
+  version "13.1.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-13.1.0.tgz#776167db68c78f38dcce1f9b8d7b8b9a488abf46"
+  integrity sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==
 
 concat-map@0.0.1:
   version "0.0.1"
